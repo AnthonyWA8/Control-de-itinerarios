@@ -23,6 +23,7 @@ export interface DayPlan {
 export interface Itinerary {
   id?: string;
   destination: string;
+  travelDate: string;
   totalDays: number;
   totalEstimatedCost: number;
   summary: string;
@@ -51,10 +52,28 @@ function toPreferencesPayload(prefs: TravelPreferences) {
 }
 
 export async function generateItinerary(prefs: TravelPreferences): Promise<Itinerary> {
-  return apiFetch<Itinerary>("/api/v1/itineraries/generate", {
+  const result = await apiFetch<Itinerary>("/api/v1/itineraries/generate", {
     method: "POST",
     body: JSON.stringify({ preferences: toPreferencesPayload(prefs) }),
   });
+
+  // NUEVO
+  const dateLabel = prefs.travelDate
+    ? new Date(prefs.travelDate + "T12:00:00").toLocaleDateString("es-ES", {
+        day: "numeric",
+        month: "long",
+        year: "numeric",
+      })
+    : "";
+
+  // NUEVO
+  return {
+    ...result,
+    travelDate: prefs.travelDate || "",
+    summary: `Itinerario personalizado para ${prefs.duration} días en ${prefs.destination}${
+      dateLabel ? `, con salida el ${dateLabel}` : ""
+    }, diseñado para...`,
+  };
 }
 
 export async function regenerateItinerary(prefs: TravelPreferences): Promise<Itinerary> {

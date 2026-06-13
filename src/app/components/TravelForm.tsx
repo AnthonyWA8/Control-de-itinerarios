@@ -3,7 +3,7 @@ import { Button } from "./ui/button";
 import { Input } from "./ui/input";
 import { Label } from "./ui/label";
 import { Slider } from "./ui/slider";
-import { Badge } from "./ui/badge";
+import { CalendarDays } from "lucide-react";
 import { Textarea } from "./ui/textarea";
 import {
   MapPin, Clock, DollarSign, Heart, AlertCircle,
@@ -13,6 +13,7 @@ import {
 
 export interface TravelPreferences {
   destination: string;
+  travelDate: string;
   duration: number;
   budget: number;
   budgetType: "budget" | "moderate" | "luxury";
@@ -50,10 +51,12 @@ const TRAVEL_STYLES = [
 interface Props {
   onGenerate: (prefs: TravelPreferences) => void;
   loading: boolean;
+  initialDestination?: string;
 }
 
-export function TravelForm({ onGenerate, loading }: Props) {
-  const [destination, setDestination] = useState("");
+export function TravelForm({ onGenerate, loading, initialDestination = "" }: Props) {
+  const [destination, setDestination] = useState(initialDestination);
+  const [travelDate, setTravelDate] = useState("");
   const [duration, setDuration] = useState(5);
   const [budget, setBudget] = useState(1500);
   const [budgetType, setBudgetType] = useState<"budget" | "moderate" | "luxury">("moderate");
@@ -68,10 +71,13 @@ export function TravelForm({ onGenerate, loading }: Props) {
     );
   };
 
+
+  const today = new Date().toISOString().split("T")[0];
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!destination.trim()) return;
-    onGenerate({ destination, duration, budget, budgetType, interests, restrictions, travelStyle, groupType });
+    onGenerate({ destination, travelDate, duration, budget, budgetType, interests, restrictions, travelStyle, groupType });
   };
 
   return (
@@ -89,6 +95,26 @@ export function TravelForm({ onGenerate, loading }: Props) {
           required
           className="bg-input-background border-border"
         />
+      </div>
+
+      {/* Travel Date */}
+      <div className="space-y-2">
+        <Label className="flex items-center gap-2">
+          <CalendarDays className="w-4 h-4 text-primary" />
+          Fecha de viaje <span className="text-muted-foreground text-sm">(opcional)</span>
+        </Label>
+        <Input
+          type="date"
+          value={travelDate}
+          min={today}
+          onChange={(e) => setTravelDate(e.target.value)}
+          className="bg-input-background border-border"
+        />
+        {travelDate && (
+          <p className="text-xs text-muted-foreground">
+            Salida: {new Date(travelDate + "T12:00:00").toLocaleDateString("es-ES", { weekday: "long", day: "numeric", month: "long", year: "numeric" })}
+          </p>
+        )}
       </div>
 
       {/* Duration */}
