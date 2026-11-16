@@ -3,11 +3,11 @@ import { Badge } from "./ui/badge";
 import { Button } from "./ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "./ui/tabs";
 import { Separator } from "./ui/separator";
-import type { Itinerary, DayPlan, Activity } from "./itineraryGenerator";
+import type { Itinerary, DayPlan, Activity, PlaceLocation } from "./itineraryGenerator";
 import {
   MapPin, Clock, DollarSign, Star, ThumbsUp,
   Info, Utensils, Map, Landmark, Trees, Zap, Hotel, Bus,
-  ChevronDown, ChevronUp, RefreshCw, CheckCircle, BookmarkPlus, BookmarkCheck
+  ChevronDown, ChevronUp, RefreshCw, CheckCircle, BookmarkPlus, BookmarkCheck, ExternalLink, BadgeCheck
 } from "lucide-react";
 
 const activityTypeConfig: Record<Activity["type"], { icon: typeof Utensils; color: string; label: string }> = {
@@ -18,6 +18,77 @@ const activityTypeConfig: Record<Activity["type"], { icon: typeof Utensils; colo
   transport: { icon: Bus, color: "bg-slate-100 text-slate-700", label: "Transporte" },
   accommodation: { icon: Hotel, color: "bg-rose-100 text-rose-800", label: "Alojamiento" },
 };
+
+const sourceLabel: Record<PlaceLocation["source"], string> = {
+  google: "Google Maps",
+  openstreetmap: "OpenStreetMap",
+};
+
+function PlaceInfo({ activity }: { activity: Activity }) {
+  const loc = activity.location;
+  if (!loc && !activity.place) return null;
+
+  if (!loc) {
+    // El LLM propuso un lugar, pero el MCP no pudo confirmarlo.
+    return (
+      <div className="flex items-center gap-1.5 mt-2 text-xs text-muted-foreground/70">
+        <MapPin className="w-3 h-3 shrink-0" />
+        <span className="truncate">{activity.place}</span>
+        <span className="shrink-0">· sin verificar</span>
+      </div>
+    );
+  }
+
+  return (
+    <div className="mt-2 rounded-lg border border-border bg-muted/40 px-3 py-2 text-xs">
+      <div className="flex items-start gap-1.5">
+        <MapPin className="w-3.5 h-3.5 mt-0.5 shrink-0 text-primary" />
+        <div className="min-w-0 flex-1">
+          <p className="font-medium text-foreground truncate">{loc.name}</p>
+          {loc.address && (
+            <p className="text-muted-foreground line-clamp-2">{loc.address}</p>
+          )}
+        </div>
+      </div>
+      <div className="flex flex-wrap items-center justify-between gap-2 mt-1.5 pl-5">
+        <span className="inline-flex items-center gap-1 text-emerald-700 dark:text-emerald-400">
+          <BadgeCheck className="w-3 h-3" />
+          Verificado · {sourceLabel[loc.source] ?? loc.source}
+          {loc.rating != null && <span className="text-muted-foreground">· ★ {loc.rating.toFixed(1)}</span>}
+        </span>
+        {loc.url && (
+          <a
+            href={loc.url}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-1 text-primary hover:underline"
+          >
+            Ver en el mapa
+            <ExternalLink className="w-3 h-3" />
+          </a>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function MapsAttribution({ itinerary }: { itinerary: Itinerary }) {
+  const sources = new Set<PlaceLocation["source"]>();
+  itinerary.days.forEach((d) => d.activities.forEach((a) => a.location && sources.add(a.location.source)));
+  if (sources.size === 0) return null;
+  return (
+    <p className="mt-4 text-center text-[11px] text-muted-foreground">
+      Ubicaciones verificadas mediante MCP ·{" "}
+      {sources.has("google") && <span>Datos de Google Maps</span>}
+      {sources.has("google") && sources.has("openstreetmap") && " · "}
+      {sources.has("openstreetmap") && (
+        <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer" className="hover:underline">
+          © OpenStreetMap contributors
+        </a>
+      )}
+    </p>
+  );
+}
 
 function ActivityCard({ activity }: { activity: Activity }) {
   const [expanded, setExpanded] = useState(false);
@@ -50,6 +121,8 @@ function ActivityCard({ activity }: { activity: Activity }) {
         <p className="text-sm text-muted-foreground leading-relaxed">
           {activity.description}
         </p>
+
+        <PlaceInfo activity={activity} />
 
         {activity.tip && (
           <button
@@ -462,6 +535,8 @@ export function ItineraryView({
           )}
         </TabsContent>
       </Tabs>
+
+      <MapsAttribution itinerary={itinerary} />
     </div>
   );
 }

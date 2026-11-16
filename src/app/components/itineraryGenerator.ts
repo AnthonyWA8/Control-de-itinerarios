@@ -10,6 +10,21 @@ export interface Activity {
   type: "food" | "culture" | "outdoor" | "leisure" | "transport" | "accommodation";
   cost: number;
   tip?: string;
+  /** Nombre real del lugar propuesto por el LLM (null en traslados o tiempo libre). */
+  place?: string | null;
+  /** Datos reales del lugar, verificados por el servidor MCP de mapas. */
+  location?: PlaceLocation | null;
+}
+
+export interface PlaceLocation {
+  name: string;
+  address?: string | null;
+  lat?: number | null;
+  lng?: number | null;
+  url?: string | null;
+  rating?: number | null;
+  source: "google" | "openstreetmap";
+  verified: boolean;
 }
 
 export interface DayPlan {
